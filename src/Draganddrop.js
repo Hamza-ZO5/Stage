@@ -1,180 +1,226 @@
-import React, {useEffect, useState } from "react";
-import { Button, Table, Input, Space, Card, Select } from 'antd';
+import React from "react";
+import { Button } from "antd";
 import "./App.css";
-const emojiOptions = [ 
-  { value: '😃', label: '😃 Smiling' },
-  { value: '❤️', label: '❤️ Heart' },
-  { value: '👍', label: '👍 Thumbs Up' },
-  { value: '🚀', label: '🚀 Rocket' },
+import axios from "axios";
+const BASE_URL=`http://localhost:2000/`;
+const emojiOptions = [
+  { value: "😃", label: "😃 Smiling" },
+  { value: "❤️", label: "❤️ Heart" },
+  { value: "👍", label: "👍 Thumbs Up" },
+  { value: "🚀", label: "🚀 Rocket" },
 ];
 
 
-const { Column } = Table;
-const { Meta } = Card;
 
-function Draganddrop() {
-  const [selectedEmoji, setSelectedEmoji] = useState('🙂');
+class Draganddrop extends React.Component {
+  constructor(props) {
+    super(props);
 
-  // Function to handle emoji selection
-  const handleEmojiChange = (value) => {
-    setSelectedEmoji(value);
+    this.state = {
+      selectedEmoji: "🙂",
+      newTask: "",
+      tasks:[],
+    };
+  }
+  componentDidMount(){
+    axios.get(`${BASE_URL}task`).then((response)=>{
+      console.log(response.status);//to check if te data come or not console
+      this.setState({tasks:response.data})
+
+    }).catch((error)=>{
+      console.log(error);
+
+
+    })
+  } 
+  //delete
+  handleDeleteTask = (taskId) => {
+    axios.delete(`${BASE_URL}task/${taskId}`).then((response)=>{
+      console.log(response);
+      console.log(response.status);
+      if(response.status==204){
+        const updatedTasks = this.state.tasks.filter((task) => task._id !== taskId);
+        this.setState({ tasks: updatedTasks });
+      }
+      // console.log(response.data); juste l teste
+     
+
+
+    }).catch((error)=>{
+      console.log(error);
+
+
+    })
+
   };
-  const initialTasks = [
-    { id: 'task-1', content: 'Task 1', status: 'tickets' },
-    { id: 'task-2', content: 'Task 2', status: 'tickets' },
-    { id: 'task-3', content: 'Task 3', status: 'tickets' },
-    { id: 't', content: 'Task 4', status: 'To Do' },
+  //add
+  handleAddTask = () => {
+    const { newTask } = this.state;
+    if (newTask.trim() === "") return;
 
-  ];
-  const [tasks, setTasks] = useState(() => {
-    //retrieve "getItem"data from the browser's local storage based on the provided key"tasks""
-    const storedTasks = localStorage.getItem("tasks");
-    //condition ? trueValue : falseValue
-    return storedTasks ? JSON.parse(storedTasks) : initialTasks;
-    //el return heyya bch tetsajel fel tasks
+    const newTaskObject = {
+      content: newTask,    status: "todo", // Set the status property to "todo"
+
+    };
+
     
-  });//btw he will always return the stored data khater deja tsjlet
-  //ay changement bch ysir aala tasks bch ytsjl bel fnction hook useeffect
-  useEffect(() => {
-    // Save(localStorage.setItem) data mta3 tasks fel LocalStorage mta3 
-    //browser sous forme(JSON string)whenever tasks change
-    localStorage.setItem("tasks", JSON.stringify(tasks));
-  }, [tasks]);
-  const [newTask, setNewTask] = useState('');
+      this.addNewTask(newTaskObject)
+    
+  };
+  addNewTask =(newTask)=>{
+    axios.post(`${BASE_URL}task`,newTask).then((response)=>{
+      // console.log(response.data); juste l teste
+      this.setState(
+        (prevState) => ({
+          tasks: [...prevState.tasks, response.data],//response.data hedha el task elli tzed jdid
+          newTask: "",
+        }),
+      );
 
-  const handleDeleteTask = (taskId) => {
-    //filtrage bch yhez les elem lkol mta3 tasks b khlef l'ele elli aandou id=taskId
-    const updatedTasks = tasks.filter((task) => task.id !== taskId);
-    setTasks(updatedTasks);
+
+    }).catch((error)=>{
+      console.log(error);
+
+
+    })
+  };
+  handleEmojiChange = (value) => {
+    this.setState({ selectedEmoji: value });
   };
 
-  const handleDragStart = (e, taskId) => {
-    e.dataTransfer.setData('text/plain', taskId);
-    //we choosed the id(tasId) to be the data that being tranfered <3 
+
+  handleDragStart = (e, taskId) => {
+    e.dataTransfer.setData("application/json", taskId);
   };
 
-  const handleDragOver = (e) => {
+  handleDragOver = (e) => {
     e.preventDefault();
   };
 
-  const handleDrop = (e, dropZone) => {
+  handleDrop = (e, dropZone) => {
     e.preventDefault();
-    //we called the data that we shoosed to be moved(taskId)
-    const taskId = e.dataTransfer.getData('text/plain');
-    //we do the update in terms of th dragable id will be removed from it's latest status
-    //by removing it from tasks array,after that we make recombo with the new status of the draggble item in the tasks array
+    const taskId = e.dataTransfer.getData("application/json");
+    axios.put(`${BASE_URL}task/${taskId}`,{status: dropZone}).then((response)=>{
+     if(response.status==200){
+      const updatedTasks = this.state.tasks.filter((task) => task._id !== taskId);
+      const droppedTask = this.state.tasks.find((task) => task._id === taskId);
+      this.setState(
+        {
+          tasks: [...updatedTasks,response.data],
+        },
+      );
+     }
 
-    const updatedTasks = tasks.filter((task) => task.id !== taskId);
-    const droppedTask = tasks.find((task) => task.id === taskId);
-    setTasks([...updatedTasks, { ...droppedTask, status: dropZone }]);//dropzone("enti w win bh taychou")
+
+    }).catch((error)=>{
+      console.log(error);
+
+
+    })
+   
   };
-
-  const handleAddTask = () => {
-    if (newTask.trim() === '') return;
-    const newTaskObject = { id: `task-${Date.now()}`, content: newTask, status: 'tickets' };
-    setTasks([...tasks, newTaskObject]);//... copie
-    setNewTask('');
-  };
-
-  return (
-    <div className="drag-and-drop-container">
-      <div className="add-task">
-        <input
-          type="text"
-          placeholder="Add new task..."
-          value={newTask} 
-          onChange={(e) => setNewTask(e.target.value)}
-          //getting the info and use the handleAddTask to add it to the tasks array that it will atouch them with the tickets coloumn
-        />
+  render() {
+    const { selectedEmoji, tasks, newTask } = this.state;
+    return (
+      <div className="drag-and-drop-container">
         
-        <button onClick={handleAddTask}>Add Task</button>
+        <div className="add-task">
+          <input
+            type="text"
+            placeholder="Add new task..."
+            value={newTask}
+            onChange={(e) => this.setState({ newTask: e.target.value })}
+          />
+          <button onClick={this.handleAddTask}>Add Task</button>
+        </div>
+
+        <div
+          className="task-list"
+          onDragOver={(e) => this.handleDragOver(e)}
+          onDrop={(e) => this.handleDrop(e, "ticket")}
+        >
+          <h3>tickets</h3>
+          {tasks
+            .filter((task) => task.status === "ticket")
+            .map((task) => (
+              <div
+                key={task._id}
+                draggable
+                onDragStart={(e) => this.handleDragStart(e, task._id)}
+                className="task"
+              >
+                {task.content}
+                <Button onClick={() => this.handleDeleteTask(task._id)}>
+                  Delete
+                </Button>
+              </div>
+            ))}
+        </div>
+
+        <div
+          className="task-list"
+          onDragOver={(e) => this.handleDragOver(e)}
+          onDrop={(e) => this.handleDrop(e, "todo")}
+        >
+          <h3>To Do</h3>
+          {tasks
+            .filter((task) => task.status === "todo")
+            .map((task) => (
+              <div
+                key={task._id}
+                draggable
+                onDragStart={(e) => this.handleDragStart(e, task._id)}
+                className="task"
+              >
+                {task.content}
+              </div>
+            ))}
+        </div>
+
+        <div
+          className="task-list"
+          onDragOver={(e) => this.handleDragOver(e)}
+          onDrop={(e) => this.handleDrop(e, "progress")}
+        >
+          <h3>In Progress</h3>
+          {tasks
+            .filter((task) => task.status === "progress")
+            .map((task) => (
+              <div
+                key={task._id}
+                draggable
+                onDragStart={(e) => this.handleDragStart(e, task._id)}
+                className="task"
+              >
+                {task.content}
+              </div>
+            ))}
+        </div>
+
+        <div
+          className="task-list"
+          onDragOver={(e) => this.handleDragOver(e)}
+          onDrop={(e) => this.handleDrop(e, "complete")}
+        >
+          <h3>Done</h3>
+          {tasks
+            .filter((task) => task.status === "complete")//mot cleee mm que le base :3 complete
+            .map((task) => (
+              <div
+                key={task._id}
+                draggable
+                onDragStart={(e) => this.handleDragStart(e, task._id)}
+                className="task"
+              >
+                {task.content}
+              </div>
+            ))}
+        </div>
+    
       </div>
-
-      <div
-        className="task-list"
-        onDragOver={(e) => handleDragOver(e)}
-        onDrop={(e) => handleDrop(e, 'tickets')}
-      >
-        <h3>tickets</h3>
-        {tasks
-          .filter((task) => task.status === 'tickets') // Corrected the status to 'tickets'
-          .map((task) => (
-            <div
-              key={task.id}
-              draggable
-              onDragStart={(e) => handleDragStart(e, task.id)}
-              className="task"
-            >
-
-              {task.content}
-              <Button onClick={() => handleDeleteTask(task.id)}>Delete</Button>
-              
-
-            </div>
-          ))}
-      </div>
-
-       <div
-        className="task-list"
-        onDragOver={(e) => handleDragOver(e)}
-        onDrop={(e) => handleDrop(e, 'todo')}
-      >
-        <h3>To Do</h3>
-        {tasks
-          .filter((task) => task.status === 'todo')
-          .map((task) => (
-            <div
-              key={task.id}
-              draggable
-              onDragStart={(e) => handleDragStart(e, task.id)}
-              className="task"
-            >
-              {task.content}
-            </div>
-          ))}
-      </div>
-
-      <div
-        className="task-list"
-        onDragOver={(e) => handleDragOver(e)}
-        onDrop={(e) => handleDrop(e, 'inProgress')}
-      >
-        <h3>In Progress</h3>
-        {tasks
-          .filter((task) => task.status === 'inProgress')//drope zone'inProgress'
-          .map((task) => (
-            <div
-              key={task.id}
-              draggable
-              onDragStart={(e) => handleDragStart(e, task.id)}
-              className="task"
-            >
-              {task.content}
-            </div>
-          ))}
-      </div>
-
-      <div
-        className="task-list"
-        onDragOver={(e) => handleDragOver(e)}
-        onDrop={(e) => handleDrop(e, 'done')}
-      >
-        <h3>Done</h3>
-        {tasks
-          .filter((task) => task.status === 'done')
-          .map((task) => (
-            <div
-              key={task.id}
-              draggable
-              onDragStart={(e) => handleDragStart(e, task.id)}
-              className="task"
-            >
-              {'content of the tasks:° '+task.content+'//status of the tasks:'+task.status+'//id of the task:°'+task.id}
-            </div>
-          ))}
-      </div>
-    </div>
-  );
+      
+    );
+  }
 }
 
 export default Draganddrop;

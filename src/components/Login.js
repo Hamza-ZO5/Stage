@@ -2,16 +2,19 @@ import { useRef, useState, useEffect, useContext } from 'react';
 import AuthContext from '../context/AuthProvider';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import useAuth from '../hooks/useAuth';// Import the custom hook
 
 const LOGIN_URL = 'http://localhost:2000/auth/login';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { setAuth } = useContext(AuthContext); // Assuming AuthContext provides setAuth
+  // const { setAuth } = useContext(AuthContext); // Assuming AuthContext provides setAuth
+  const { auth,setAuth } = useAuth(); // 
 
   const userRef = useRef();
   const errRef = useRef();
 
+  const [email, setEmail] = useState('');
   const [user, setUser] = useState('');
   const [pwd, setPwd] = useState('');
   const [errMsg, setErrMsg] = useState('');
@@ -29,6 +32,7 @@ const Login = () => {
 
     try {
       const response = await axios.post(LOGIN_URL, {
+        email: email, // Include the email field in the request
         username: user,
         password: pwd,
 
@@ -36,6 +40,7 @@ const Login = () => {
 
       const userExist = response.data;
       // const userID = userExist._id.$oid;
+      console.log('Response:', userExist.email); // Log the entire response to the console
 
       if (userExist) {
         const userID = userExist._id; // Extract the user ID directly as a string
@@ -44,11 +49,14 @@ const Login = () => {
         console.log('Extracted userID:', userID); // Log the userID to the console
 
         setAuth({
+          email,
           user,
           role: userExist.role,
           userId: userID, // Include the user ID in the authentication state
         });
-        // setAuth({ user, role: userExist.role }); // Set the user and role based on your response data
+        console.log("auth show off",auth.email);
+
+        // setAuth({ user, role: userExist.role }); // Set the user and role based on the response data
         axios.defaults.headers.common['token'] = userID;//zyeda
 
         // setAuth({ user, pwd }); // Set the user object based on your response data
@@ -60,7 +68,7 @@ const Login = () => {
       if (!err?.response) {
         setErrMsg('No Server Response');
       } else if (err.response?.status === 400) {
-        setErrMsg('Missing Username or Password');
+        setErrMsg('Invalid Credential');
       } else if (err.response?.status === 401) {
         setErrMsg('Unauthorized');
       } else {
@@ -88,6 +96,17 @@ const Login = () => {
           required
         />
 
+{/* email */}
+<label htmlFor="email">Email:</label>
+<input
+  type="email" // Use the email input type for better validation
+  id="email"
+  onChange={(e) => setEmail(e.target.value)}
+  value={email}
+  required
+/>
+
+{/* email */}
         <label htmlFor="password">Password:</label>
         <input
           type="password"

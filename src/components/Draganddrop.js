@@ -5,7 +5,6 @@ import { Link, useNavigate } from 'react-router-dom'; // Import useNavigate
 import { useContext } from "react";
 import AuthContext from '../context/AuthProvider'; // Import your AuthContext
 
-
 // import "./App.css";
 import axios from "axios";
 
@@ -16,7 +15,8 @@ const emojiOptions = [
   { value: "✔️", label: "✔️ Not Approved" }, // Cross Mark emoji
 ];
 
-
+// remarque hooks paste in read me :
+// If you want to keep your component as a class component and resolve the "Invalid hook call" issue, you should not use hooks like useNavigate inside a class component. Instead, you can pass the navigate function as a prop to your class component. Here's how you can do it:
 
 class Draganddrop extends React.Component {
   static contextType = AuthContext;
@@ -28,32 +28,56 @@ class Draganddrop extends React.Component {
       nbre: "",
       newTask: "",
       tasks: [],
+      pickedname:"",
+      tasksbyname:[],
     };
   }
 
+   logout = async () => {
+    const { setAuth } = this.context;
+    setAuth({});
+    this.props.navigate('/linkpage');
+}
   handleLogout = () => {
     const { setAuth } = this.context;
     setAuth({});
     this.props.history.push('/linkpage'); // Navigate to the desired page
   };
-  componentDidMount() {
-    // Load the stored tasks from local storage
-    const storedTasks = localStorage.getItem('dragAndDropTasks');
-    if (storedTasks) {
-      this.setState({ tasks: JSON.parse(storedTasks) });
-    }
+                                    componentDidMount() {
+                                      // Load the stored tasks from local storage
+                                      const storedTasks = localStorage.getItem('dragAndDropTasks');
+                                      if (storedTasks) {
+                                        this.setState({ tasks: JSON.parse(storedTasks) });
+                                      }
 
-    axios.get(`${BASE_URL}task`).then((response) => {
-      console.log("data being fetched",response.data);//to check if te data come or not console
-      this.setState({ tasks: response.data })
+                                      axios.get(`${BASE_URL}task`).then((response) => {
+                                        console.log("data being fetched",response.data);//to check if te data come or not console
+                                        this.setState({ tasks: response.data })
 
-
-    }).catch((error) => {
-      console.log(error);
+                                        console.log("zo5",this.state.tasks.map((task) => task.owner.username));
 
 
-    })
-  }
+                                      }).catch((error) => {
+                                        console.log(error);
+
+
+                                      })
+                                    }
+                                    
+bringbyname(){
+this.setState({
+tasksbyname: this.state.tasks.filter((task) => task.owner.username === this.state.pickedname)
+});
+                                                                            // console.log("zo5",this.state.tasks.map((task) => task.owner.username));
+console.log("zo5",this.tasksbyname);
+
+
+
+
+
+
+
+                                    }
   componentWillUnmount() {
     // Save the component's tasks to local storage before unmounting
     localStorage.setItem('dragAndDropTasks', JSON.stringify(this.state.tasks));
@@ -120,12 +144,9 @@ class Draganddrop extends React.Component {
 
   //   this.setState({ tasks: updatedTasks });
   // };
-
-
   handleDragStart = (e, taskId) => {
     e.dataTransfer.setData("application/json", taskId);
   };
-
   handleDragOver = (e) => {
     e.preventDefault();
   };
@@ -138,10 +159,20 @@ class Draganddrop extends React.Component {
       console.log("Task not found in state");
       return;
     }
-  
+    let updatedEmoji = "";
+    if (dropZone === "todo") {
+      updatedEmoji = "📝"; // Emoji for To Do
+    } else if (dropZone === "progress") {
+      updatedEmoji = "⏳"; // Emoji for In Progress
+    } else if (dropZone === "complete") {
+      updatedEmoji = "✅ "; // Emoji for Completed
+    } else if (dropZone === "ticket") {
+      updatedEmoji = "💭"; // Emoji for Completed
+    }
     const updatedTaskData = {
       ...taskToUpdate,
       status: dropZone,
+      emoji:updatedEmoji,
     };
   
     axios.put(`${BASE_URL}task/${taskId}`, updatedTaskData).then((response) => {
@@ -163,6 +194,40 @@ class Draganddrop extends React.Component {
       console.log(error);
     });
   };
+  // handleDrop = (e, dropZone) => {
+  //   e.preventDefault();
+  //   const taskId = e.dataTransfer.getData("application/json");
+  //   const taskToUpdate = this.state.tasks.find((task) => task._id === taskId);
+  
+  //   if (!taskToUpdate) {
+  //     console.log("Task not found in state");
+  //     return;
+  //   }
+  
+  //   const updatedTaskData = {
+  //     ...taskToUpdate,
+  //     status: dropZone,
+  //   };
+  
+  //   axios.put(`${BASE_URL}task/${taskId}`, updatedTaskData).then((response) => {
+  //     if (response.status === 200) {
+  //       const updatedTask = response.data; // Updated task from the response
+  //       const updatedTasks = this.state.tasks.map((task) => {
+  //         if (task._id === taskId) {
+  //           return updatedTask;
+  //         } else {
+  //           return task;
+  //         }
+  //       });
+  
+  //       this.setState({
+  //         tasks: updatedTasks,
+  //       });
+  //     }
+  //   }).catch((error) => {
+  //     console.log(error);
+  //   });
+  // };
   
   // handleDrop = (e, dropZone) => {
   //   e.preventDefault();
@@ -219,15 +284,68 @@ class Draganddrop extends React.Component {
   //     console.log(error);
   //   });
   // };
-  
   render() {
-    const { selectedEmoji, tasks, newTask, nbre } = this.state;
+    const { selectedEmoji, tasks, newTask, nbre,pickedname,tasksbyname } = this.state;
     return (
 
+      
       <div className="drag-and-drop-container">
-         <div className="logout-button">
-          <button onClick={this.handleLogout}>Sign Out</button>
-        </div>
+        
+        <div className="task-list" >
+          <input
+            type="text"
+            placeholder="bring task by name...."
+            value={pickedname}
+            onChange={(e) => this.setState({ pickedname: e.target.value })}
+            className="task-input"
+
+          />
+          {"tasks by name :"}
+          
+          {pickedname === '' ? (
+          <div className="waiting-symbol">Waiting for input...</div>
+        ) : (
+          tasks
+            .filter((task) => task.owner.username === pickedname)
+            .map((task) => (
+              <div key={task._id} className="task">
+                {task.content}
+                {task.emoji}
+                <div>
+                  <strong>Task Owner:</strong>
+                  {task.owner.username}
+                </div>
+              </div>
+            ))
+        )}
+      </div>
+    
+  
+
+
+        {/* <div           className="task-list">
+         
+
+        <input
+            type="text"
+            placeholder="bring task by name"
+            value={username}
+            onChange={(e) => this.setState({ username: e.target.value })}
+          /> */}
+        {/* <h2>{this.state.tasks.map((task) => `,`+task.owner.username)}</h2> */}
+
+        {/* <button onClick={this.bringbyname}>Bring task </button>
+        {
+          tasksbyname.map((task)=> (
+            {task }
+          ))
+
+        }
+
+        </div> */}
+       
+
+
         <div className="add-task">
           <input
             type="text"
@@ -257,6 +375,10 @@ class Draganddrop extends React.Component {
     </div>
   ))}
 </div> */}
+
+
+
+
         <div
           className="task-list"
           onDragOver={(e) => this.handleDragOver(e)}
@@ -337,9 +459,8 @@ class Draganddrop extends React.Component {
                 onDragStart={(e) => this.handleDragStart(e, task._id)}
                 className="task"
               >
-                                {task.emoji}
-
                 {task.content}
+                {task.emoji}
                 <div>
                   <strong>Task Owner:</strong>
                   {task.owner.username}
@@ -371,6 +492,7 @@ class Draganddrop extends React.Component {
                   <strong>Task Owner:</strong>
                   {task.owner.username}
                 </div>
+                {task.emoji}
 
               </div>
             ))}
@@ -391,18 +513,22 @@ class Draganddrop extends React.Component {
                 onDragStart={(e) => this.handleDragStart(e, task._id)}
                 className="task"
               >
-                {task.emoji}
-
                 {task.content}
+
                 <div>
                   <strong>Task Owner:</strong>
                   {task.owner.username}
                 </div>
+                {task.emoji}
 
               </div>
             ))}
         </div>
 
+
+        <div className="logout-button">
+        <button onClick={this.logout} >Sign Out</button>
+        </div>
       </div>
 
     );

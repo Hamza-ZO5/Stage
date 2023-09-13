@@ -10,6 +10,7 @@ import Lounge from './components/Lounge';
 import LinkPage from './components/LinkPage';
 import RequireAuth from './components/RequireAuth';
 import { Routes, Route } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const ROLES = {
   'User': 'admin',
@@ -18,11 +19,13 @@ const ROLES = {
 }
 
 function App() {
+  const navigate = useNavigate();
 
   return (
     <Routes>
       <Route path="/" element={<Layout />}>
-         {/* public routes  */}
+         {/* public routes  */} 
+         
         <Route path="login" element={<Login />} />
         <Route path="register" element={<Register />} />
         <Route path="linkpage" element={<LinkPage />} />
@@ -30,25 +33,19 @@ function App() {
 
          {/* we want to protect these routes  */}
          <Route element={<RequireAuth allowedRoles={[ROLES.Editor,ROLES.Admin]} />}> 
-
-          <Route path="/" element={<Home />} />
-       </Route>
-
+              <Route path="/" element={<Home />} />
+         </Route>
          <Route element={<RequireAuth allowedRoles={[ROLES.Editor]} />}> 
-          <Route path="DragAndDropUser" element={<DragAndDropUser />} />
+              <Route path="DragAndDropUser" element={<DragAndDropUser />} />
          </Route> 
-
-
          <Route element={<RequireAuth allowedRoles={["admin"]} />}> 
-          <Route path="Draganddrop" element={<Draganddrop />} />
+              <Route path="Draganddrop" element={<Draganddrop navigate={navigate}  />} />
          </Route> 
-
         <Route element={<RequireAuth allowedRoles={[ROLES.Editor, ROLES.Admin]} />}>
-          <Route path="lounge" element={<Lounge />} />
+              <Route path="lounge" element={<Lounge />} />
         </Route>
-
-         catch all 
-        <Route path="*" element={<Missing />} />
+               catch all 
+               <Route path="*" element={<Missing />} />
       </Route>
     </Routes>
   );

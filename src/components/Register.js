@@ -3,6 +3,7 @@ import { faCheck, faTimes, faInfoCircle } from "@fortawesome/free-solid-svg-icon
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import axios from 'axios';
 
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const USER_REGEX = /^[A-z][A-z0-9-_]{3,23}$/;
 const PWD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%]).{8,24}$/;
 const REGISTER_URL = 'http://localhost:2000/auth/register';
@@ -10,6 +11,11 @@ const REGISTER_URL = 'http://localhost:2000/auth/register';
 const Register = () => {
     const userRef = useRef();
     const errRef = useRef();
+
+    const [email, setEmail] = useState('');
+    const [validEmail, setValidEmail] = useState(false);
+    const [emailFocus, setEmailFocus] = useState(false);
+
 
     const [user, setUser] = useState('');
     const [validName, setValidName] = useState(false);
@@ -31,6 +37,11 @@ const Register = () => {
     }, [])
 
     useEffect(() => {
+        setValidEmail(EMAIL_REGEX.test(email)); // Define your EMAIL_REGEX if needed
+      }, [email]);
+      
+
+    useEffect(() => {
         setValidName(USER_REGEX.test(user));
     }, [user])
 
@@ -46,7 +57,7 @@ const Register = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         // if button enabled with JS hack
-        if (!validName || !validPwd || !validMatch) {
+        if (!validName || !validPwd || !validMatch || !validEmail) {
             setErrMsg("Invalid Entry");
             return;
         }
@@ -54,6 +65,7 @@ const Register = () => {
             const response = await axios.post(
                 REGISTER_URL,
                 {
+                    email: email, // Include the email field in the request
                     username: user,
                     password: pwd
                 },
@@ -65,6 +77,7 @@ const Register = () => {
             console.log("Registration successful:", response.data);
             setSuccess(true);
             //clear state and controlled inputs
+            setEmail(''); // Clear the email field as well
             setUser('');
             setPwd('');
             setMatchPwd('');
@@ -117,6 +130,36 @@ const Register = () => {
                             Must begin with a letter.<br />
                             Letters, numbers, underscores, hyphens allowed.
                         </p>
+
+{/* email */}
+<label htmlFor="email">
+  Email:
+  <FontAwesomeIcon
+    icon={faCheck}
+    className={validEmail ? "valid" : "hide"}
+  />
+  <FontAwesomeIcon
+    icon={faTimes}
+    className={validEmail || !email ? "hide" : "invalid"}
+  />
+</label>
+<input
+  type="email" // Use the email input type for better validation
+  id="email"
+  onChange={(e) => setEmail(e.target.value)}
+  value={email}
+  required
+  aria-invalid={validEmail ? "false" : "true"}
+  aria-describedby="emailnote"
+  onFocus={() => setEmailFocus(true)}
+  onBlur={() => setEmailFocus(false)}
+/>
+<p id="emailnote" className={emailFocus && email && !validEmail ? "instructions" : "offscreen"}>
+  <FontAwesomeIcon icon={faInfoCircle} />
+  Please enter a valid email address.
+</p>
+
+{/* email */}
 
 
                         <label htmlFor="password">

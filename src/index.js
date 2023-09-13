@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 ReactDOM.render(
   <React.StrictMode>
     <BrowserRouter>
+    {/* wrap the entire application with the AuthProvider. This makes the authentication state available to all components */}
       <AuthProvider>
         <Routes>
           <Route path="/*" element={<App />} />
